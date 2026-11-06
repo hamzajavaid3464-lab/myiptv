@@ -1,0 +1,8 @@
+{
+  "name": "Remix CupertinoTV — Live Global IPTV Player",
+  "description": "Apple-designed live television streaming platform powered by the open-source iptv-org global M3U directory, featuring HLS playback, Quad Multi-View, and mobile-first ergonomics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
