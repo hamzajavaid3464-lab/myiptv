@@ -124,3 +124,26 @@ test('buildShareableChannelUrl and resolveSharedChannelFromQuery round-trip chan
   assert.equal(customResolved.countryCode, 'FR');
   assert.equal(customResolved.group, 'Music');
 });
+
+test('filterChannels supports multiple country and multiple language selection', () => {
+  const channels = parseM3U(SAMPLE_M3U);
+  // SAMPLE_M3U has NASA TV (US, English), BBC News (GB, English), Red Bull TV (AT, German/English)
+  
+  const usAndGb = filterChannels(channels, {
+    selectedCountries: ['US', 'GB'],
+  });
+  assert.equal(usAndGb.length, 2);
+  assert.deepEqual(usAndGb.map((c) => c.name), ['NASA TV Public', 'BBC News']);
+
+  const onlyAt = filterChannels(channels, {
+    selectedCountries: ['AT'],
+  });
+  assert.equal(onlyAt.length, 1);
+  assert.equal(onlyAt[0].name, 'Red Bull TV');
+
+  const englishOnly = filterChannels(channels, {
+    selectedLanguages: ['English'],
+  });
+  assert.ok(englishOnly.length >= 2);
+});
+

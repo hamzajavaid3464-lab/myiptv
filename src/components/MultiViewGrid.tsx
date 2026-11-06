@@ -3,6 +3,7 @@ import Hls from 'hls.js';
 import { Volume2, VolumeX, Maximize2, X, Plus, Tv } from 'lucide-react';
 import { IPTVChannel } from '../utils/m3uParser';
 import { ChannelLogo } from './ChannelLogo';
+import { CountryFlag } from './CountryFlag';
 
 interface MultiViewSlotProps {
   channel: IPTVChannel | null;
@@ -118,8 +119,9 @@ const MultiViewSlot: React.FC<MultiViewSlotProps> = ({
             <p className="text-xs font-semibold text-white truncate">
               {channel.name}
             </p>
-            <p className="text-[11px] text-zinc-300 truncate">
-              {channel.countryName} · {channel.group}
+            <p className="text-[11px] text-zinc-300 truncate flex items-center gap-1.5 mt-0.5">
+              <CountryFlag code={channel.countryCode} size="xs" />
+              <span>{channel.countryName} · {channel.group}</span>
             </p>
           </div>
         </div>

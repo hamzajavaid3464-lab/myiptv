@@ -33,6 +33,7 @@ import {
   getCompressorPreset,
 } from '../utils/audioNormalizer';
 import { ChannelLogo } from './ChannelLogo';
+import { CountryFlag } from './CountryFlag';
 
 const NORMALIZER_STORAGE_KEY = 'cupertinotv_audio_normalizer_v1';
 const NORMALIZER_MODES_ORDER: AudioNormalizerMode[] = [
@@ -591,6 +592,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 </h2>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-200 truncate">
+                <CountryFlag code={channel.countryCode} size="xs" />
                 <span>{channel.countryName}</span>
                 <span aria-hidden="true">·</span>
                 <span>{channel.group}</span>
@@ -844,7 +846,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {channel.name}
           </span>
           <span aria-hidden="true">·</span>
-          <span className="whitespace-nowrap">{channel.countryName}</span>
+          <span className="whitespace-nowrap flex items-center gap-1.5">
+            <CountryFlag code={channel.countryCode} size="xs" />
+            <span>{channel.countryName}</span>
+          </span>
           <span aria-hidden="true">·</span>
           <span className="whitespace-nowrap">
             {channel.categories.join(' / ')}

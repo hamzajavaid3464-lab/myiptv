@@ -19,6 +19,9 @@ import {
   History,
   Play,
   Trash2,
+  Languages,
+  MapPin,
+  CheckSquare,
 } from 'lucide-react';
 import {
   IPTVChannel,
@@ -30,12 +33,16 @@ import {
   recordWatchedChannel,
   resolveSharedChannelFromQuery,
   buildShareableChannelUrl,
+  getCountryFlag,
+  POPULAR_LANGUAGES,
 } from './utils/m3uParser';
 import { CURATED_FEATURED_CHANNELS } from './utils/curatedChannels';
 import { VideoPlayer } from './components/VideoPlayer';
 import { ChannelLogo } from './components/ChannelLogo';
 import { MultiViewGrid } from './components/MultiViewGrid';
 import { PlaylistModal } from './components/PlaylistModal';
+import { CountryLanguageModal } from './components/CountryLanguageModal';
+import { CountryFlag } from './components/CountryFlag';
 import { PWAInstallButton, OfflineIndicator } from './components/PWAInstallModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FloatingPiPPlayer } from './components/FloatingPiPPlayer';
@@ -46,6 +53,11 @@ const FAVORITES_STORAGE_KEY = 'cupertinotv_favorites_v1';
 const THEME_STORAGE_KEY = 'cupertinotv_theme_v1';
 const WATCH_HISTORY_STORAGE_KEY = 'cupertinotv_watch_history_v1';
 const HEALTH_STORAGE_KEY = 'cupertinotv_health_map_v1';
+const REGION_COUNTRIES_KEY = 'cupertinotv_selected_countries_v2';
+const REGION_LANGUAGES_KEY = 'cupertinotv_selected_languages_v2';
+const PROMPT_ON_REFRESH_KEY = 'cupertinotv_prompt_on_refresh_v2';
+const PROMPT_SHOWN_SESSION_KEY = 'cupertinotv_prompt_shown_session_v2';
+const CONFIGURED_KEY = 'cupertinotv_configured_v2';
 
 export default function App() {
   // Theme state (Dark mode default for Apple TV+ cinema experience)
@@ -268,6 +280,64 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
+
+  // Country & Language Multi-Select Preferences (Persisted across sessions)
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(REGION_COUNTRIES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Ignore
+    }
+    return [];
+  });
+
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(REGION_LANGUAGES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Ignore
+    }
+    return [];
+  });
+
+  const [promptOnRefresh, setPromptOnRefresh] = useState<boolean>(() => {
+    try {
+      const val = localStorage.getItem(PROMPT_ON_REFRESH_KEY);
+      if (val !== null) return val === 'true';
+    } catch {
+      // Ignore
+    }
+    return true; // Default to true per user requirement: ask on first launch or refresh
+  });
+
+  // Automatically prompt on first launch OR on hard refresh / page load
+  const [isCountryLanguageModalOpen, setIsCountryLanguageModalOpen] =
+    useState<boolean>(() => {
+      if (typeof window === 'undefined') return false;
+      try {
+        const hasConfigured = localStorage.getItem(CONFIGURED_KEY) === 'true';
+        const promptPref = localStorage.getItem(PROMPT_ON_REFRESH_KEY);
+        const shouldPromptEveryTime = promptPref !== null ? promptPref === 'true' : true;
+        const shownInSession = sessionStorage.getItem(PROMPT_SHOWN_SESSION_KEY) === 'true';
+
+        // Prompt if first launch (not yet configured) OR if shouldPromptEveryTime and fresh reload
+        if (!hasConfigured || shouldPromptEveryTime || !shownInSession) {
+          return true;
+        }
+      } catch {
+        // Fallback to opening
+      }
+      return true;
+    });
+
   const [httpsOnly, setHttpsOnly] = useState<boolean>(true);
   const [hideGeoBlocked, setHideGeoBlocked] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'featured' | 'name' | 'resolution'>(
@@ -280,6 +350,29 @@ export default function App() {
     useState<boolean>(false);
   const [isFloatingPiPOpen, setIsFloatingPiPOpen] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(60);
+
+  // Global Keyboard Shortcuts (R = Region & Language modal, ? = Shortcuts modal)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        setIsCountryLanguageModalOpen((prev) => !prev);
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Load M3U Playlist from iptv-org
   const loadPlaylistFromUrl = useCallback(async (url: string, label: string) => {
@@ -365,12 +458,113 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [allChannels, httpsOnly, hideBrokenStreams, healthMap]);
 
-  // Filtered channels based on active section, health monitor & search criteria
+  // Extract available languages with counts
+  const languageOptions = useMemo(() => {
+    const map = new Map<
+      string,
+      { code: string; name: string; nativeName: string; count: number }
+    >();
+
+    // Seed with popular languages
+    for (const item of POPULAR_LANGUAGES) {
+      map.set(item.name, {
+        code: item.code,
+        name: item.name,
+        nativeName: item.nativeName,
+        count: 0,
+      });
+    }
+
+    for (const ch of allChannels) {
+      if (httpsOnly && !ch.isHttps) continue;
+      if (hideBrokenStreams && healthMap[ch.id] === 'offline') continue;
+      if (ch.languages && ch.languages.length > 0) {
+        for (const lang of ch.languages) {
+          const existing = map.get(lang);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            map.set(lang, {
+              code: lang.slice(0, 3).toLowerCase(),
+              name: lang,
+              nativeName: lang,
+              count: 1,
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [allChannels, httpsOnly, hideBrokenStreams, healthMap]);
+
+  // Handle saving Country & Language preferences from modal
+  const handleApplyCountryLanguagePreferences = useCallback(
+    (countries: string[], languages: string[], promptSetting: boolean) => {
+      setSelectedCountries(countries);
+      setSelectedLanguages(languages);
+      setPromptOnRefresh(promptSetting);
+      setVisibleCount(60);
+
+      try {
+        localStorage.setItem(CONFIGURED_KEY, 'true');
+        localStorage.setItem(REGION_COUNTRIES_KEY, JSON.stringify(countries));
+        localStorage.setItem(REGION_LANGUAGES_KEY, JSON.stringify(languages));
+        localStorage.setItem(
+          PROMPT_ON_REFRESH_KEY,
+          promptSetting ? 'true' : 'false'
+        );
+        sessionStorage.setItem(PROMPT_SHOWN_SESSION_KEY, 'true');
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    []
+  );
+
+  const handleRemoveCountry = useCallback((code: string) => {
+    setSelectedCountries((prev) => {
+      const next = prev.filter((c) => c !== code);
+      try {
+        localStorage.setItem(REGION_COUNTRIES_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRemoveLanguage = useCallback((lang: string) => {
+    setSelectedLanguages((prev) => {
+      const next = prev.filter((l) => l !== lang);
+      try {
+        localStorage.setItem(REGION_LANGUAGES_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  }, []);
+
+  const handleClearAllRegionalFilters = useCallback(() => {
+    setSelectedCountries([]);
+    setSelectedLanguages([]);
+    try {
+      localStorage.setItem(REGION_COUNTRIES_KEY, JSON.stringify([]));
+      localStorage.setItem(REGION_LANGUAGES_KEY, JSON.stringify([]));
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Filtered channels based on active section, health monitor, countries, languages & search criteria
   const filteredChannels = useMemo(() => {
     return filterChannels(allChannels, {
       query: searchQuery,
       category: selectedCategory,
       countryCode: selectedCountry,
+      selectedCountries,
+      selectedLanguages,
       httpsOnly,
       hideGeoBlocked,
       hideBrokenStreams,
@@ -384,6 +578,8 @@ export default function App() {
     searchQuery,
     selectedCategory,
     selectedCountry,
+    selectedCountries,
+    selectedLanguages,
     httpsOnly,
     hideGeoBlocked,
     hideBrokenStreams,
@@ -392,6 +588,18 @@ export default function App() {
     favoriteIds,
     sortBy,
   ]);
+
+  // When filtered channels change, tune to first matching channel if active channel is filtered out
+  useEffect(() => {
+    if (filteredChannels.length > 0) {
+      const isCurrentInFiltered = filteredChannels.some(
+        (c) => c.id === activeChannel?.id
+      );
+      if (!isCurrentInFiltered) {
+        setActiveChannel(filteredChannels[0]);
+      }
+    }
+  }, [filteredChannels, activeChannel?.id]);
 
   const displayedChannels = useMemo(
     () => filteredChannels.slice(0, visibleCount),
@@ -586,12 +794,43 @@ export default function App() {
           </a>
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsCountryLanguageModalOpen(true)}
+            aria-label="Change Country and Language Filters"
+            className="min-h-[38px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-black/5 dark:border-white/10 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 shadow-xs"
+          >
+            {selectedCountries.length > 0 ? (
+              <div className="flex items-center -space-x-1 shrink-0">
+                {selectedCountries.slice(0, 3).map((code) => (
+                  <CountryFlag
+                    key={code}
+                    code={code}
+                    size="xs"
+                    className="ring-1 ring-white dark:ring-zinc-900"
+                  />
+                ))}
+              </div>
+            ) : (
+              <Globe className="w-3.5 h-3.5 text-[#0071E3]" />
+            )}
+            <span className="hidden sm:inline">Region & Lang</span>
+            <span className="sm:hidden">Filters</span>
+            {(selectedCountries.length > 0 || selectedLanguages.length > 0) && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#0071E3] text-white">
+                {selectedCountries.length > 0 ? `${selectedCountries.length}C` : ''}
+                {selectedCountries.length > 0 && selectedLanguages.length > 0 ? '·' : ''}
+                {selectedLanguages.length > 0 ? `${selectedLanguages.length}L` : ''}
+              </span>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={() => setIsPlaylistModalOpen(true)}
-            className="min-h-[38px] px-4 py-2 text-xs font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-xl transition-colors whitespace-nowrap shrink-0 shadow-sm"
+            className="min-h-[38px] px-3.5 sm:px-4 py-2 text-xs font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-xl transition-colors whitespace-nowrap shrink-0 shadow-sm"
           >
             Playlist Source
           </button>
@@ -603,66 +842,68 @@ export default function App() {
         aria-label="Stream Directory Controls"
         className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 pt-4 pb-2"
       >
-        <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <label htmlFor="global-channel-search" className="sr-only">
-              Search live channels, countries, or categories
-            </label>
-            <input
-              id="global-channel-search"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setVisibleCount(60);
-              }}
-              placeholder="Search live channels, networks, or countries (e.g. DW, Red Bull, CBS, Sports)..."
-              className="w-full min-h-[42px] pl-10 pr-9 py-2 rounded-xl bg-zinc-100/90 dark:bg-zinc-800/80 border border-transparent focus:border-[#0071E3] text-xs sm:text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search query"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-zinc-300/70 dark:bg-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Country Filter, Health Filter, HTTPS Toggle, PWA Install & Theme Controls */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
-            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl px-3 min-h-[40px] shrink-0">
-              <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-              <label htmlFor="country-filter-select" className="sr-only">
-                Filter by Country
+        <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col gap-3">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <label htmlFor="global-channel-search" className="sr-only">
+                Search live channels, countries, or categories
               </label>
-              <select
-                id="country-filter-select"
-                value={selectedCountry}
+              <input
+                id="global-channel-search"
+                type="search"
+                value={searchQuery}
                 onChange={(e) => {
-                  setSelectedCountry(e.target.value);
+                  setSearchQuery(e.target.value);
                   setVisibleCount(60);
                 }}
-                className="bg-transparent text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none pr-1 cursor-pointer max-w-[140px] truncate"
-              >
-                <option value="ALL" className="bg-white dark:bg-zinc-900">
-                  All Countries ({countryOptions.length})
-                </option>
-                {countryOptions.map((c) => (
-                  <option
-                    key={c.code}
-                    value={c.code}
-                    className="bg-white dark:bg-zinc-900"
-                  >
-                    {c.name} ({c.count})
-                  </option>
-                ))}
-              </select>
+                placeholder="Search live channels, networks, or countries (e.g. DW, Red Bull, CBS, Sports)..."
+                className="w-full min-h-[42px] pl-10 pr-9 py-2 rounded-xl bg-zinc-100/90 dark:bg-zinc-800/80 border border-transparent focus:border-[#0071E3] text-xs sm:text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search query"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-zinc-300/70 dark:bg-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+
+            {/* Country & Language Filter, Health Filter, HTTPS Toggle, PWA Install & Theme Controls */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsCountryLanguageModalOpen(true)}
+                className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
+                  selectedCountries.length > 0 || selectedLanguages.length > 0
+                    ? 'bg-[#0071E3]/15 text-[#0071E3] border border-[#0071E3]/30 font-semibold'
+                    : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                }`}
+              >
+                {selectedCountries.length > 0 ? (
+                  <div className="flex items-center -space-x-1 shrink-0">
+                    {selectedCountries.slice(0, 3).map((code) => (
+                      <CountryFlag
+                        key={code}
+                        code={code}
+                        size="xs"
+                        className="ring-1 ring-white dark:ring-zinc-900"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <Globe className="w-3.5 h-3.5 text-[#0071E3]" />
+                )}
+                <span>
+                  {selectedCountries.length === 0 && selectedLanguages.length === 0
+                    ? 'All Regions & Langs'
+                    : `${selectedCountries.length > 0 ? `${selectedCountries.length} Countries` : 'All Countries'} · ${selectedLanguages.length > 0 ? `${selectedLanguages.length} Langs` : 'All Langs'}`}
+                </span>
+              </button>
 
             <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl px-3 min-h-[40px] shrink-0">
               <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
@@ -749,6 +990,69 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* Active Regional & Language Filters Strip */}
+        {(selectedCountries.length > 0 || selectedLanguages.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-black/5 dark:border-white/5 text-xs">
+            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mr-1">
+              <MapPin className="w-3 h-3 text-[#0071E3]" />
+              Active Filters:
+            </span>
+            {selectedCountries.map((code) => {
+              const opt = countryOptions.find((c) => c.code === code);
+              return (
+                <span
+                  key={code}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#0071E3]/10 text-[#0071E3] border border-[#0071E3]/25"
+                >
+                  <CountryFlag code={code} size="xs" />
+                  <span>{opt?.name || code}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCountry(code)}
+                    className="ml-0.5 hover:opacity-75 transition-opacity"
+                    aria-label={`Remove country ${opt?.name || code}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+            {selectedLanguages.map((lang) => (
+              <span
+                key={lang}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25"
+              >
+                <Languages className="w-3 h-3" />
+                <span>{lang}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveLanguage(lang)}
+                  className="ml-0.5 hover:opacity-75 transition-opacity"
+                  aria-label={`Remove language ${lang}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => setIsCountryLanguageModalOpen(true)}
+              className="text-xs text-[#0071E3] hover:underline font-semibold ml-1 py-1"
+            >
+              + Edit Filters
+            </button>
+            <span className="text-zinc-300 dark:text-zinc-700">·</span>
+            <button
+              type="button"
+              onClick={handleClearAllRegionalFilters}
+              className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline py-1"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
+      </div>
 
         {/* Category Filter Bar (Interactive Functional Segmented Tabs) */}
         <div
@@ -1200,6 +1504,7 @@ export default function App() {
                           </div>
                           {/* Unboxed static metadata with middle-dot separators */}
                           <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                            <CountryFlag code={ch.countryCode} size="xs" />
                             <span>{ch.countryName}</span>
                             <span aria-hidden="true">·</span>
                             <span>{ch.group}</span>
@@ -1294,8 +1599,9 @@ export default function App() {
                           onClick={() => handleSelectChannel(ch)}
                           className="text-left flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 pt-1 border-t border-black/5 dark:border-white/5"
                         >
-                          <span className="truncate">
-                            {ch.countryCode} · {ch.group}
+                          <span className="truncate flex items-center gap-1.5">
+                            <CountryFlag code={ch.countryCode} size="xs" />
+                            <span>{ch.countryCode} · {ch.group}</span>
                           </span>
                           <span className="font-mono tabular-nums">
                             {ch.resolution}
@@ -1466,6 +1772,30 @@ export default function App() {
         onImportRawM3U={handleImportRawM3U}
         totalLoadedChannels={allChannels.length}
         isLoadingPlaylist={isLoadingPlaylist}
+      />
+
+      {/* Country & Language Preferences Modal (shown on first launch, hard refresh, and when user edits filters) */}
+      <CountryLanguageModal
+        isOpen={isCountryLanguageModalOpen}
+        onClose={() => {
+          setIsCountryLanguageModalOpen(false);
+          try {
+            sessionStorage.setItem(PROMPT_SHOWN_SESSION_KEY, 'true');
+          } catch {
+            // Ignore
+          }
+        }}
+        selectedCountries={selectedCountries}
+        selectedLanguages={selectedLanguages}
+        onApply={handleApplyCountryLanguagePreferences}
+        availableCountries={countryOptions}
+        availableLanguages={languageOptions}
+        promptOnRefresh={promptOnRefresh}
+        isFirstLaunch={
+          typeof window !== 'undefined'
+            ? localStorage.getItem(CONFIGURED_KEY) !== 'true'
+            : false
+        }
       />
     </div>
   );

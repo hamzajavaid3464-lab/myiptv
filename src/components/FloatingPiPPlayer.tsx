@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { IPTVChannel } from '../utils/m3uParser';
+import { CountryFlag } from './CountryFlag';
 
 interface FloatingPiPPlayerProps {
   channel: IPTVChannel | null;
@@ -107,8 +108,9 @@ export const FloatingPiPPlayer: React.FC<FloatingPiPPlayerProps> = ({
             <p className="text-xs font-semibold text-white truncate">
               {channel.name}
             </p>
-            <p className="text-[10px] text-zinc-300 truncate">
-              PiP Mode · {channel.countryCode} · {channel.resolution}
+            <p className="text-[10px] text-zinc-300 truncate flex items-center gap-1.5 mt-0.5">
+              <CountryFlag code={channel.countryCode} size="xs" />
+              <span>{channel.countryCode} · {channel.resolution}</span>
             </p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
