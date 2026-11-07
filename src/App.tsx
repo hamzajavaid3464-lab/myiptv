@@ -606,6 +606,54 @@ export default function App() {
     [filteredChannels, visibleCount]
   );
 
+  // Channels sharing active channel's country or spoken languages for horizontal tray
+  const relatedCountryOrLangChannels = useMemo(() => {
+    if (!activeChannel) return [];
+    const activeCountry = activeChannel.countryCode?.trim().toUpperCase();
+    const activeLangs = new Set(
+      (activeChannel.languages || []).map((l) => l.trim().toLowerCase())
+    );
+
+    return allChannels
+      .filter((c) => {
+        if (c.id === activeChannel.id) return false;
+        const matchesCountry = Boolean(
+          activeCountry &&
+          c.countryCode &&
+          c.countryCode.trim().toUpperCase() === activeCountry
+        );
+        const matchesLang = Boolean(
+          c.languages?.some((l) => activeLangs.has(l.trim().toLowerCase()))
+        );
+        return matchesCountry || matchesLang;
+      })
+      .slice(0, 36);
+  }, [allChannels, activeChannel]);
+
+  // Channels sharing active channel's primary category / genre for horizontal tray
+  const relatedCategoryChannels = useMemo(() => {
+    if (!activeChannel) return [];
+    const activeGroup = activeChannel.group?.trim().toLowerCase();
+    const activeCats = new Set(
+      (activeChannel.categories || []).map((cat) => cat.trim().toLowerCase())
+    );
+
+    return allChannels
+      .filter((c) => {
+        if (c.id === activeChannel.id) return false;
+        const matchesGroup = Boolean(
+          activeGroup &&
+          c.group &&
+          c.group.trim().toLowerCase() === activeGroup
+        );
+        const matchesCat = Boolean(
+          c.categories?.some((cat) => activeCats.has(cat.trim().toLowerCase()))
+        );
+        return matchesGroup || matchesCat;
+      })
+      .slice(0, 36);
+  }, [allChannels, activeChannel]);
+
   // Batch Stream Health Prober to automatically test & hide broken streams
   const probeVisibleChannelsHealth = useCallback(async () => {
     if (isProbingHealth) return;
@@ -714,22 +762,23 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F5F7] dark:bg-[#09090B] text-[#1D1D1F] dark:text-[#F5F5F7] pb-20 lg:pb-10">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#F5F5F7] dark:bg-[#09090B] text-[#1D1D1F] dark:text-[#F5F5F7] pb-24 md:pb-12">
       <OfflineIndicator />
 
       {/* Mandatory 3-Zone Top Bar Contract */}
-      <header className="sticky top-0 z-30 h-14 px-4 sm:px-8 bg-white/80 dark:bg-[#09090B]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-8">
+      <header className="sticky top-0 z-30 h-14 w-full max-w-full px-3 sm:px-8 bg-white/85 dark:bg-[#09090B]/85 backdrop-blur-xl border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-2 sm:gap-8">
         {/* Zone 1: Brand wordmark & designer credit */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
               setActiveSection('live');
             }}
-            className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap"
+            className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap flex items-center gap-1.5"
           >
-            CupertinoTV
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" aria-hidden="true" />
+            <span>CupertinoTV</span>
           </a>
           <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-black/5 dark:border-white/5">
             Designed by Hamza Javaid
@@ -799,17 +848,17 @@ export default function App() {
           </a>
         </nav>
 
-        {/* Zone 3: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Zone 3: Actions (optimized for zero horizontal blowout on mobile) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setIsCountryLanguageModalOpen(true)}
             aria-label="Change Country and Language Filters"
-            className="min-h-[38px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-black/5 dark:border-white/10 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 shadow-xs"
+            className="min-h-[36px] sm:min-h-[38px] px-2 sm:px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-black/5 dark:border-white/10 flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap shrink-0 shadow-xs active:scale-95"
           >
             {selectedCountries.length > 0 ? (
               <div className="flex items-center -space-x-1 shrink-0">
-                {selectedCountries.slice(0, 3).map((code) => (
+                {selectedCountries.slice(0, 2).map((code) => (
                   <CountryFlag
                     key={code}
                     code={code}
@@ -822,7 +871,7 @@ export default function App() {
               <Globe className="w-3.5 h-3.5 text-[#0071E3]" />
             )}
             <span className="hidden sm:inline">Region & Lang</span>
-            <span className="sm:hidden">Filters</span>
+            <span className="sm:hidden text-[11px]">Region</span>
             {(selectedCountries.length > 0 || selectedLanguages.length > 0) && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-[#0071E3] text-white">
                 {selectedCountries.length > 0 ? `${selectedCountries.length}C` : ''}
@@ -835,9 +884,25 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsPlaylistModalOpen(true)}
-            className="min-h-[38px] px-3.5 sm:px-4 py-2 text-xs font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-xl transition-colors whitespace-nowrap shrink-0 shadow-sm"
+            aria-label="Switch Playlist Source"
+            className="min-h-[36px] sm:min-h-[38px] px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-xl transition-colors whitespace-nowrap shrink-0 shadow-sm flex items-center gap-1.5 active:scale-95"
           >
-            Playlist Source
+            <Layers className="w-3.5 h-3.5 sm:hidden" />
+            <span className="hidden sm:inline">Playlist Source</span>
+          </button>
+
+          {/* Direct Dark/Light switch on mobile top bar for instant comfort */}
+          <button
+            type="button"
+            onClick={() => setIsDark((prev) => !prev)}
+            aria-label={isDark ? 'Switch to Light' : 'Switch to Dark'}
+            className="sm:hidden w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 flex items-center justify-center transition-colors shrink-0 active:scale-95"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-zinc-700" />
+            )}
           </button>
         </div>
       </header>
@@ -845,12 +910,12 @@ export default function App() {
       {/* Secondary Workspace Filter, Health Monitor & PWA Install Bar */}
       <section
         aria-label="Stream Directory Controls"
-        className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 pt-4 pb-2"
+        className="w-full max-w-[1440px] mx-auto px-3 sm:px-8 pt-3 sm:pt-4 pb-2 min-w-0"
       >
-        <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col gap-3">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col gap-3 w-full max-w-full min-w-0">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 w-full max-w-full min-w-0">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-0">
+            <div className="relative flex-1 min-w-0 w-full">
               <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <label htmlFor="global-channel-search" className="sr-only">
                 Search live channels, countries, or categories
@@ -878,12 +943,12 @@ export default function App() {
               )}
             </div>
 
-            {/* Country & Language Filter, Health Filter, HTTPS Toggle, PWA Install & Theme Controls */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+            {/* Country & Language Filter, Health Filter, HTTPS Toggle, PWA Install & Theme Controls (Smooth Touch Swipe) */}
+            <div className="w-full lg:w-auto min-w-0 max-w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
               <button
                 type="button"
                 onClick={() => setIsCountryLanguageModalOpen(true)}
-                className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
+                className={`min-h-[38px] sm:min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 active:scale-95 ${
                   selectedCountries.length > 0 || selectedLanguages.length > 0
                     ? 'bg-[#0071E3]/15 text-[#0071E3] border border-[#0071E3]/30 font-semibold'
                     : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -910,160 +975,160 @@ export default function App() {
                 </span>
               </button>
 
-            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl px-3 min-h-[40px] shrink-0">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-              <label htmlFor="sort-order-select" className="sr-only">
-                Sort channels by
-              </label>
-              <select
-                id="sort-order-select"
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(
-                    e.target.value as 'featured' | 'name' | 'resolution'
-                  )
-                }
-                className="bg-transparent text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+              <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl px-3 min-h-[38px] sm:min-h-[40px] shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <label htmlFor="sort-order-select" className="sr-only">
+                  Sort channels by
+                </label>
+                <select
+                  id="sort-order-select"
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(
+                      e.target.value as 'featured' | 'name' | 'resolution'
+                    )
+                  }
+                  className="bg-transparent text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                >
+                  <option value="featured" className="bg-white dark:bg-zinc-900">
+                    Sort: Featured & Verified
+                  </option>
+                  <option
+                    value="resolution"
+                    className="bg-white dark:bg-zinc-900"
+                  >
+                    Sort: Highest Resolution
+                  </option>
+                  <option value="name" className="bg-white dark:bg-zinc-900">
+                    Sort: Alphabetical (A–Z)
+                  </option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setHideBrokenStreams((prev) => !prev)}
+                aria-pressed={hideBrokenStreams}
+                className={`min-h-[38px] sm:min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-95 ${
+                  hideBrokenStreams
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                    : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-transparent'
+                }`}
               >
-                <option value="featured" className="bg-white dark:bg-zinc-900">
-                  Sort: Featured & Verified
-                </option>
-                <option
-                  value="resolution"
-                  className="bg-white dark:bg-zinc-900"
-                >
-                  Sort: Highest Resolution
-                </option>
-                <option value="name" className="bg-white dark:bg-zinc-900">
-                  Sort: Alphabetical (A–Z)
-                </option>
-              </select>
+                <Activity className="w-3.5 h-3.5" />
+                <span>
+                  Auto-Hide Broken
+                  {brokenStreamsCount > 0 ? ` (${brokenStreamsCount})` : ''}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHttpsOnly((prev) => !prev)}
+                aria-pressed={httpsOnly}
+                className={`min-h-[38px] sm:min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-95 ${
+                  httpsOnly
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                    : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-transparent'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>HTTPS</span>
+              </button>
+
+              <PWAInstallButton />
+
+              <button
+                type="button"
+                onClick={() => setIsDark((prev) => !prev)}
+                aria-label={
+                  isDark ? 'Switch to Light Appearance' : 'Switch to Dark Appearance'
+                }
+                className="hidden sm:flex min-w-[40px] min-h-[40px] px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 items-center justify-center gap-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0"
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-zinc-700" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setHideBrokenStreams((prev) => !prev)}
-              aria-pressed={hideBrokenStreams}
-              className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
-                hideBrokenStreams
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                  : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-transparent'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>
-                Auto-Hide Broken
-                {brokenStreamsCount > 0 ? ` (${brokenStreamsCount})` : ''}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setHttpsOnly((prev) => !prev)}
-              aria-pressed={httpsOnly}
-              className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
-                httpsOnly
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                  : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-transparent'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>HTTPS</span>
-            </button>
-
-            <PWAInstallButton />
-
-            <button
-              type="button"
-              onClick={() => setIsDark((prev) => !prev)}
-              aria-label={
-                isDark ? 'Switch to Light Appearance' : 'Switch to Dark Appearance'
-              }
-              className="min-w-[40px] min-h-[40px] px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0"
-            >
-              {isDark ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-400" />
-                  <span className="hidden sm:inline">Light</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-zinc-700" />
-                  <span className="hidden sm:inline">Dark</span>
-                </>
-              )}
-            </button>
           </div>
-        </div>
 
-        {/* Active Regional & Language Filters Strip */}
-        {(selectedCountries.length > 0 || selectedLanguages.length > 0) && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-black/5 dark:border-white/5 text-xs">
-            <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mr-1">
-              <MapPin className="w-3 h-3 text-[#0071E3]" />
-              Active Filters:
-            </span>
-            {selectedCountries.map((code) => {
-              const opt = countryOptions.find((c) => c.code === code);
-              return (
+          {/* Active Regional & Language Filters Strip */}
+          {(selectedCountries.length > 0 || selectedLanguages.length > 0) && (
+            <div className="w-full max-w-full min-w-0 flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-black/5 dark:border-white/5 text-xs">
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mr-1">
+                <MapPin className="w-3 h-3 text-[#0071E3]" />
+                Active Filters:
+              </span>
+              {selectedCountries.map((code) => {
+                const opt = countryOptions.find((c) => c.code === code);
+                return (
+                  <span
+                    key={code}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#0071E3]/10 text-[#0071E3] border border-[#0071E3]/25 shrink-0"
+                  >
+                    <CountryFlag code={code} size="xs" />
+                    <span>{opt?.name || code}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCountry(code)}
+                      className="ml-0.5 hover:opacity-75 transition-opacity"
+                      aria-label={`Remove country ${opt?.name || code}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                );
+              })}
+              {selectedLanguages.map((lang) => (
                 <span
-                  key={code}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#0071E3]/10 text-[#0071E3] border border-[#0071E3]/25"
+                  key={lang}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0"
                 >
-                  <CountryFlag code={code} size="xs" />
-                  <span>{opt?.name || code}</span>
+                  <Languages className="w-3 h-3" />
+                  <span>{lang}</span>
                   <button
                     type="button"
-                    onClick={() => handleRemoveCountry(code)}
+                    onClick={() => handleRemoveLanguage(lang)}
                     className="ml-0.5 hover:opacity-75 transition-opacity"
-                    aria-label={`Remove country ${opt?.name || code}`}
+                    aria-label={`Remove language ${lang}`}
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
-              );
-            })}
-            {selectedLanguages.map((lang) => (
-              <span
-                key={lang}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25"
+              ))}
+              <button
+                type="button"
+                onClick={() => setIsCountryLanguageModalOpen(true)}
+                className="text-xs text-[#0071E3] hover:underline font-semibold ml-1 py-1 shrink-0"
               >
-                <Languages className="w-3 h-3" />
-                <span>{lang}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveLanguage(lang)}
-                  className="ml-0.5 hover:opacity-75 transition-opacity"
-                  aria-label={`Remove language ${lang}`}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-            <button
-              type="button"
-              onClick={() => setIsCountryLanguageModalOpen(true)}
-              className="text-xs text-[#0071E3] hover:underline font-semibold ml-1 py-1"
-            >
-              + Edit Filters
-            </button>
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            <button
-              type="button"
-              onClick={handleClearAllRegionalFilters}
-              className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline py-1"
-            >
-              Clear All
-            </button>
-          </div>
-        )}
-      </div>
+                + Edit Filters
+              </button>
+              <span className="text-zinc-300 dark:text-zinc-700">·</span>
+              <button
+                type="button"
+                onClick={handleClearAllRegionalFilters}
+                className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline py-1 shrink-0"
+              >
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Category Filter Bar (Interactive Functional Segmented Tabs) */}
         <div
           role="tablist"
           aria-label="Channel Categories"
-          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-3 pb-1"
+          className="w-full max-w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-3 pb-1"
         >
           <button
             type="button"
@@ -1105,13 +1170,13 @@ export default function App() {
       </section>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-8 py-3">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-3 sm:px-8 py-2 sm:py-3 min-w-0">
         {/* Category Explorer View when 'categories' tab is active */}
         {activeSection === 'categories' && (
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+          <section className="mb-6 sm:mb-8 w-full min-w-0">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
                   Browse by Genre & Official Playlist
                 </h1>
                 <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -1120,28 +1185,28 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5 w-full min-w-0">
               {OFFICIAL_IPTV_SOURCES.map((src) => (
                 <div
                   key={src.id}
-                  className="p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col justify-between gap-4 hover:border-[#0071E3]/50 transition-colors"
+                  className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col justify-between gap-3 sm:gap-4 hover:border-[#0071E3]/50 transition-colors"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+                      <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-white">
                         {src.name}
                       </h3>
                       <span className="text-xs font-mono text-[#0071E3] shrink-0">
                         {src.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 sm:mt-1.5 leading-relaxed">
                       {src.description}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
-                    <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[200px]">
+                    <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[180px] sm:max-w-[200px]">
                       {src.url.replace('https://iptv-org.github.io/iptv/', '')}
                     </span>
                     <button
@@ -1151,7 +1216,7 @@ export default function App() {
                         setSelectedCategory('All');
                         setActiveSection('live');
                       }}
-                      className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-medium flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
+                      className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-medium flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 active:scale-95"
                     >
                       <span>Tune Feed</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -1164,14 +1229,14 @@ export default function App() {
         )}
 
         {/* Primary Split Studio Layout: Player Stage + Live Guide */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full min-w-0">
           {/* Left / Top Stage: Either Single HLS Cinema Player or Quad Multi-View */}
           <div
             className={`${
               isTheaterMode || activeSection === 'multiview'
                 ? 'lg:col-span-12'
                 : 'lg:col-span-7 xl:col-span-8'
-            } flex flex-col gap-5`}
+            } flex flex-col gap-4 sm:gap-5 w-full min-w-0`}
           >
             {activeSection === 'multiview' ? (
               <MultiViewGrid
@@ -1215,6 +1280,187 @@ export default function App() {
                 }
                 onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
               />
+            )}
+
+            {/* Same Country & Language Channels Horizontal Scroll Tray */}
+            {activeSection !== 'multiview' && relatedCountryOrLangChannels.length > 0 && (
+              <section
+                aria-label="Related Country and Language Channels"
+                className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 w-full min-w-0 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CountryFlag code={activeChannel.countryCode} size="sm" />
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
+                        More from {activeChannel.countryName || activeChannel.countryCode || 'this Region'}
+                        {activeChannel.languages && activeChannel.languages.length > 0 && (
+                          <span className="font-normal text-zinc-500 dark:text-zinc-400 text-xs ml-1.5 hidden sm:inline">
+                            ({activeChannel.languages.join(', ')})
+                          </span>
+                        )}
+                      </h2>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                        Live channels broadcasting in the same country or language
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono tabular-nums text-zinc-400 shrink-0">
+                    {relatedCountryOrLangChannels.length} channels
+                  </span>
+                </div>
+
+                <div className="w-full max-w-full min-w-0 flex items-stretch gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar pb-1 pt-0.5">
+                  {relatedCountryOrLangChannels.map((item) => {
+                    const isFav = favoriteIds.has(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className="min-w-[175px] sm:min-w-[205px] max-w-[215px] p-3 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 text-left bg-zinc-50/70 hover:bg-zinc-100/90 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border-black/5 dark:border-white/5 shrink-0 group shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectChannel(item)}
+                            className="flex items-center gap-2 min-w-0 text-left"
+                          >
+                            <ChannelLogo name={item.name} logo={item.logo} size="sm" />
+                            <CountryFlag code={item.countryCode} size="xs" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleFavorite(item.id)}
+                            aria-label={isFav ? `Remove ${item.name} from Favorites` : `Add ${item.name} to Favorites`}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+                              isFav
+                                ? 'text-rose-500 bg-rose-500/10'
+                                : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60'
+                            }`}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectChannel(item)}
+                          className="text-left w-full min-w-0"
+                        >
+                          <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-[#0071E3] transition-colors">
+                            {item.name}
+                          </p>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                            {item.group} · {item.resolution}
+                          </p>
+                          {item.languages && item.languages.length > 0 && (
+                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                              {item.languages.slice(0, 2).join(', ')}
+                            </p>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectChannel(item)}
+                          className="w-full min-h-[30px] px-2 py-1 rounded-xl bg-white dark:bg-zinc-700/60 hover:bg-[#0071E3] hover:text-white dark:hover:bg-[#0071E3] text-zinc-700 dark:text-zinc-200 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-black/5 dark:border-white/5 active:scale-95"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          <span>Tune Now</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Same Category / Genre Channels Horizontal Scroll Tray */}
+            {activeSection !== 'multiview' && relatedCategoryChannels.length > 0 && (
+              <section
+                aria-label="Related Category Channels"
+                className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 w-full min-w-0 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-[#0071E3]/15 text-[#0071E3] flex items-center justify-center shrink-0">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
+                        More in {activeChannel.group || activeChannel.categories[0] || 'Genre'}
+                      </h2>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                        Similar live stations in {activeChannel.group || 'this category'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono tabular-nums text-zinc-400 shrink-0">
+                    {relatedCategoryChannels.length} channels
+                  </span>
+                </div>
+
+                <div className="w-full max-w-full min-w-0 flex items-stretch gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar pb-1 pt-0.5">
+                  {relatedCategoryChannels.map((item) => {
+                    const isFav = favoriteIds.has(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className="min-w-[175px] sm:min-w-[205px] max-w-[215px] p-3 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 text-left bg-zinc-50/70 hover:bg-zinc-100/90 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border-black/5 dark:border-white/5 shrink-0 group shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectChannel(item)}
+                            className="flex items-center gap-2 min-w-0 text-left"
+                          >
+                            <ChannelLogo name={item.name} logo={item.logo} size="sm" />
+                            <CountryFlag code={item.countryCode} size="xs" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleFavorite(item.id)}
+                            aria-label={isFav ? `Remove ${item.name} from Favorites` : `Add ${item.name} to Favorites`}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+                              isFav
+                                ? 'text-rose-500 bg-rose-500/10'
+                                : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60'
+                            }`}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectChannel(item)}
+                          className="text-left w-full min-w-0"
+                        >
+                          <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-[#0071E3] transition-colors">
+                            {item.name}
+                          </p>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                            {item.countryName} · {item.resolution}
+                          </p>
+                          {item.languages && item.languages.length > 0 && (
+                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                              {item.languages.slice(0, 2).join(', ')}
+                            </p>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectChannel(item)}
+                          className="w-full min-h-[30px] px-2 py-1 rounded-xl bg-white dark:bg-zinc-700/60 hover:bg-[#0071E3] hover:text-white dark:hover:bg-[#0071E3] text-zinc-700 dark:text-zinc-200 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-black/5 dark:border-white/5 active:scale-95"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          <span>Tune Now</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
             {/* Continue Watching & Recently Watched Section */}
@@ -1261,7 +1507,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                <div className="w-full max-w-full min-w-0 flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
                   {watchHistory.map((entry) => {
                     const ch = entry.channel;
                     const isCurrent =
@@ -1272,7 +1518,7 @@ export default function App() {
                         key={ch.id}
                         type="button"
                         onClick={() => handleSelectChannel(ch)}
-                        className={`min-w-[170px] sm:min-w-[190px] p-3 rounded-xl border text-left transition-all flex items-center gap-3 shrink-0 ${
+                        className={`min-w-[160px] sm:min-w-[190px] p-2.5 sm:p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 sm:gap-3 shrink-0 active:scale-95 ${
                           isCurrent
                             ? 'bg-[#0071E3]/10 border-[#0071E3]'
                             : 'bg-zinc-50/80 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 border-black/5 dark:border-white/5'
@@ -1296,8 +1542,8 @@ export default function App() {
             )}
 
             {/* Verified Instant-Play Spotlight Dock */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10">
-              <div className="flex items-center justify-between gap-2 mb-3.5">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 w-full min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-3.5">
                 <div>
                   <h2 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                     Verified Instant-Stream Networks
@@ -1359,7 +1605,7 @@ export default function App() {
               isTheaterMode || activeSection === 'multiview'
                 ? 'lg:col-span-12'
                 : 'lg:col-span-5 xl:col-span-4'
-            } rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col overflow-hidden`}
+            } rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 flex flex-col overflow-hidden w-full min-w-0`}
           >
             {/* Directory Header */}
             <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-2">
@@ -1695,67 +1941,102 @@ export default function App() {
       </footer>
 
       {/* Mobile Fixed Bottom Tab Bar (Ergonomic Thumb Zone <= 15% Viewport Cap) */}
+      {/* Mobile Fixed Bottom Tab Bar (Native iOS/Android Thumb Ergonomics) */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-14 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-t border-black/10 dark:border-white/10 grid grid-cols-4 items-center px-2"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0E0E12]/95 backdrop-blur-2xl border-t border-black/10 dark:border-white/10 grid grid-cols-4 items-center px-1 pt-1.5 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
       >
         <button
           type="button"
-          onClick={() => setActiveSection('live')}
-          className={`min-h-[44px] flex flex-col items-center justify-center ${
+          onClick={() => {
+            setActiveSection('live');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`min-h-[46px] flex flex-col items-center justify-center transition-transform active:scale-90 ${
             activeSection === 'live'
               ? 'text-[#0071E3]'
               : 'text-zinc-500 dark:text-zinc-400'
           }`}
         >
-          <Tv className="w-5 h-5" />
-          <span className="text-[10px] font-medium tracking-tight mt-0.5">
+          <div className="relative">
+            <Tv className={`w-5 h-5 ${activeSection === 'live' ? 'stroke-[2.4]' : 'stroke-[1.8]'}`} />
+            {activeSection === 'live' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#0071E3]" />
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1">
             Live TV
           </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveSection('categories')}
-          className={`min-h-[44px] flex flex-col items-center justify-center ${
-            activeSection === 'categories'
+          onClick={() => {
+            setActiveSection('multiview');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`min-h-[46px] flex flex-col items-center justify-center transition-transform active:scale-90 ${
+            activeSection === 'multiview'
               ? 'text-[#0071E3]'
               : 'text-zinc-500 dark:text-zinc-400'
           }`}
         >
-          <Layers className="w-5 h-5" />
-          <span className="text-[10px] font-medium tracking-tight mt-0.5">
-            Categories
+          <div className="relative">
+            <Sparkles className={`w-5 h-5 ${activeSection === 'multiview' ? 'stroke-[2.4]' : 'stroke-[1.8]'}`} />
+            {activeSection === 'multiview' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#0071E3]" />
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1">
+            Quad View
           </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveSection('favorites')}
-          className={`min-h-[44px] flex flex-col items-center justify-center ${
+          onClick={() => {
+            setActiveSection('favorites');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`min-h-[46px] flex flex-col items-center justify-center transition-transform active:scale-90 ${
             activeSection === 'favorites'
               ? 'text-[#0071E3]'
               : 'text-zinc-500 dark:text-zinc-400'
           }`}
         >
-          <Heart className="w-5 h-5" />
-          <span className="text-[10px] font-medium tracking-tight mt-0.5">
+          <div className="relative">
+            <Heart className={`w-5 h-5 ${activeSection === 'favorites' ? 'fill-current stroke-[2.4]' : 'stroke-[1.8]'}`} />
+            {favoriteIds.size > 0 && (
+              <span className="absolute -top-1 -right-2 px-1 rounded-full text-[9px] font-mono bg-rose-500 text-white font-semibold leading-tight">
+                {favoriteIds.size}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1">
             Favorites
           </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveSection('multiview')}
-          className={`min-h-[44px] flex flex-col items-center justify-center ${
-            activeSection === 'multiview'
+          onClick={() => {
+            setActiveSection('categories');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`min-h-[46px] flex flex-col items-center justify-center transition-transform active:scale-90 ${
+            activeSection === 'categories'
               ? 'text-[#0071E3]'
               : 'text-zinc-500 dark:text-zinc-400'
           }`}
         >
-          <Sparkles className="w-5 h-5" />
-          <span className="text-[10px] font-medium tracking-tight mt-0.5">
-            Multi-View
+          <div className="relative">
+            <Layers className={`w-5 h-5 ${activeSection === 'categories' ? 'stroke-[2.4]' : 'stroke-[1.8]'}`} />
+            {activeSection === 'categories' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#0071E3]" />
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1">
+            Browse
           </span>
         </button>
       </nav>

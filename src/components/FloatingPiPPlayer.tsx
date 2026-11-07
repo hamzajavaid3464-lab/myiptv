@@ -91,7 +91,7 @@ export const FloatingPiPPlayer: React.FC<FloatingPiPPlayerProps> = ({
       role="region"
       aria-label="Picture-in-Picture Mini Player"
       data-testid="floating-pip-player"
-      className="fixed bottom-16 md:bottom-5 right-4 z-40 w-72 sm:w-80 rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 shadow-2xl"
+      className="fixed bottom-20 md:bottom-5 right-3 sm:right-4 z-40 w-[calc(100vw-24px)] max-w-[280px] sm:max-w-xs rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 shadow-2xl"
     >
       <div className="relative aspect-video bg-black">
         <video

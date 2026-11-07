@@ -241,31 +241,31 @@ export const CountryLanguageModal: React.FC<CountryLanguageModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="region-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
     >
-      <div className="w-full max-w-3xl rounded-3xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-3xl rounded-t-3xl sm:rounded-3xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b border-black/5 dark:border-white/10 flex items-start justify-between gap-4 bg-gradient-to-b from-zinc-50/80 to-transparent dark:from-white/[0.02] dark:to-transparent">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#0071E3]/15 dark:bg-[#0071E3]/25 flex items-center justify-center text-[#0071E3] shrink-0 mt-0.5 shadow-xs">
-              <Globe className="w-5 h-5" />
+        <div className="px-4 sm:px-7 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-black/5 dark:border-white/10 flex items-start justify-between gap-3 bg-gradient-to-b from-zinc-50/80 to-transparent dark:from-white/[0.02] dark:to-transparent">
+          <div className="flex items-start gap-3">
+            <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-2xl bg-[#0071E3]/15 dark:bg-[#0071E3]/25 flex items-center justify-center text-[#0071E3] shrink-0 mt-0.5 shadow-xs">
+              <Globe className="w-4 sm:w-5 h-4 sm:h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2
                   id="region-modal-title"
-                  className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white tracking-tight"
+                  className="text-base sm:text-xl font-bold text-zinc-900 dark:text-white tracking-tight"
                 >
                   {isFirstLaunch
-                    ? 'Welcome to CupertinoTV — Country & Language Setup'
+                    ? 'Country & Language Setup'
                     : 'Country & Language Preferences'}
                 </h2>
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0071E3]/15 text-[#0071E3] border border-[#0071E3]/25">
                   Multi-Select
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                Filter live channels by your favorite countries and broadcast languages. Tap multiple cards to combine regions. You can update these anytime from the top bar.
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                Filter live channels by your favorite countries and broadcast languages. Tap multiple cards to combine regions.
               </p>
             </div>
           </div>
@@ -274,15 +274,15 @@ export const CountryLanguageModal: React.FC<CountryLanguageModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close preferences"
-            className="w-9 h-9 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors shrink-0"
+            className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Popular Quick Select Carousel */}
-        <div className="px-5 sm:px-7 py-2.5 bg-zinc-50/80 dark:bg-zinc-900/60 border-b border-black/5 dark:border-white/5">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <div className="px-4 sm:px-7 py-2 bg-zinc-50/80 dark:bg-zinc-900/60 border-b border-black/5 dark:border-white/5 w-full min-w-0">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 w-full min-w-0">
             <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-500" />
               Quick Picks:
@@ -294,7 +294,7 @@ export const CountryLanguageModal: React.FC<CountryLanguageModalProps> = ({
                   key={item.code}
                   type="button"
                   onClick={() => toggleCountry(item.code)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium transition-all shrink-0 ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
                     isSelected
                       ? 'bg-[#0071E3] text-white shadow-xs'
                       : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-black/5 dark:border-white/10 hover:border-black/20'
@@ -309,11 +309,11 @@ export const CountryLanguageModal: React.FC<CountryLanguageModalProps> = ({
         </div>
 
         {/* Tab Navigation & Search Bar */}
-        <div className="px-5 sm:px-7 pt-3.5 pb-3 border-b border-black/5 dark:border-white/10 bg-white dark:bg-[#121215] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Segmented Tabs */}
+        <div className="px-4 sm:px-7 pt-3 pb-2.5 border-b border-black/5 dark:border-white/10 bg-white dark:bg-[#121215] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full min-w-0">
+          {/* Segmented Tabs (Equal 3-column grid on mobile, flex on desktop) */}
           <div
             role="tablist"
-            className="flex items-center p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/90 shrink-0"
+            className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/90 shrink-0"
           >
             <button
               type="button"
@@ -712,31 +712,31 @@ export const CountryLanguageModal: React.FC<CountryLanguageModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-black/5 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-5 border-t border-black/5 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full min-w-0 pb-safe">
           {/* Ask on startup/refresh checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer text-xs text-zinc-600 dark:text-zinc-300 select-none">
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-600 dark:text-zinc-300 select-none">
             <input
               type="checkbox"
               checked={promptSetting}
               onChange={(e) => setPromptSetting(e.target.checked)}
               className="w-4 h-4 rounded accent-[#0071E3] cursor-pointer"
             />
-            <span>Prompt for countries & languages on launch and page refresh</span>
+            <span>Prompt for regions on launch and refresh</span>
           </label>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-end gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleShowAll}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-300 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors text-center active:scale-95"
             >
-              Show All (No Filter)
+              Show All
             </button>
             <button
               type="button"
               onClick={handleSaveAndApply}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#0071E3] hover:bg-[#0077ED] transition-colors shadow-sm flex items-center gap-2"
+              className="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0071E3] hover:bg-[#0077ED] transition-colors shadow-sm flex items-center justify-center gap-2 active:scale-95"
             >
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Apply Filters</span>

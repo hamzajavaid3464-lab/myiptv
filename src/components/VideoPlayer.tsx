@@ -21,6 +21,8 @@ import {
   Smartphone,
   Keyboard,
   AudioWaveform,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { IPTVChannel, buildShareableChannelUrl } from '../utils/m3uParser';
 import {
@@ -150,9 +152,47 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => clearInterval(interval);
   }, [isMuted, normalizerMode]);
 
+  const [areControlsVisible, setAreControlsVisible] = useState(true);
+  const [isActivityActive, setIsActivityActive] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetControlsTimeout = useCallback(() => {
+    setIsActivityActive(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setIsActivityActive(false);
+      }, 3500);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const triggerShortcutHud = useCallback((label: string) => {
     setShortcutFeedback(label);
   }, []);
+
+  const toggleControlsVisibility = useCallback(() => {
+    setAreControlsVisible((prev) => {
+      const next = !prev;
+      triggerShortcutHud(
+        next ? 'Controls Visible' : 'Controls Hidden (Clean Screen)'
+      );
+      if (next) {
+        setIsActivityActive(true);
+        resetControlsTimeout();
+      }
+      return next;
+    });
+  }, [triggerShortcutHud, resetControlsTimeout]);
 
   useEffect(() => {
     if (!shortcutFeedback) return;
@@ -472,6 +512,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         triggerShortcutHud(
           `Loudness Normalizer: ${getCompressorPreset(nextMode).shortLabel}`
         );
+      } else if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        toggleControlsVisibility();
       } else if (e.key === '?' && onOpenShortcuts) {
         e.preventDefault();
         onOpenShortcuts();
@@ -492,6 +535,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     normalizerMode,
     handleSelectNormalizerMode,
     triggerShortcutHud,
+    toggleControlsVisibility,
   ]);
 
   const handleShareChannel = async () => {
@@ -535,13 +579,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     );
   }
 
+  const isControlsOverlayShown =
+    areControlsVisible && (!isFullscreen || isActivityActive || !isPlaying);
+
   return (
     <div className="flex flex-col gap-3">
       {/* Main Apple TV+ Glass Video Stage */}
       <div
         ref={containerRef}
         data-testid="video-player-stage"
-        className="relative group w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-black border border-black/10 dark:border-white/10 shadow-xl"
+        onMouseMove={resetControlsTimeout}
+        onTouchStart={resetControlsTimeout}
+        onMouseEnter={resetControlsTimeout}
+        className={`relative group w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-black border border-black/10 dark:border-white/10 shadow-xl ${
+          !isControlsOverlayShown ? 'cursor-none' : ''
+        }`}
       >
         <video
           ref={videoRef}
@@ -562,7 +614,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setLiveResolution(`${videoRef.current.videoHeight}p`);
             }
           }}
-          onClick={togglePlay}
+          onClick={() => {
+            if (!isControlsOverlayShown) {
+              setAreControlsVisible(true);
+              resetControlsTimeout();
+            } else {
+              togglePlay();
+            }
+          }}
           className="w-full h-full object-contain cursor-pointer bg-black"
         />
 
@@ -576,8 +635,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         )}
 
+        {/* Clean Screen: Floating Restore Controls Pill */}
+        {!isControlsOverlayShown && (
+          <button
+            type="button"
+            onClick={toggleControlsVisibility}
+            aria-label="Show video controls"
+            className="absolute top-3.5 right-3.5 z-30 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white/90 hover:text-white text-xs font-medium flex items-center gap-1.5 shadow-xl transition-all active:scale-95 animate-in fade-in duration-200"
+          >
+            <Eye className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Show Controls</span>
+          </button>
+        )}
+
         {/* Top Measured Scrim with Live Broadcast Identity */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 p-3 sm:p-5 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-start justify-between gap-2 transition-opacity duration-200">
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 p-3 sm:p-5 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-start justify-between gap-2 transition-all duration-300 ${
+            isControlsOverlayShown
+              ? 'opacity-100 pointer-events-auto'
+              : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <ChannelLogo
               name={channel.name}
@@ -678,7 +756,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
 
         {/* Bottom Glass Control Bar */}
-        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-5 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between gap-1.5 sm:gap-4">
+        <div
+          className={`absolute inset-x-0 bottom-0 p-2.5 sm:p-5 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between gap-1.5 sm:gap-4 transition-all duration-300 ${
+            isControlsOverlayShown
+              ? 'opacity-100 pointer-events-auto'
+              : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
@@ -823,6 +907,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <PictureInPicture2 className="w-4 h-4" />
             </button>
 
+            {/* Clean Screen: Toggle Controls Overlay */}
+            <button
+              type="button"
+              onClick={toggleControlsVisibility}
+              aria-label={areControlsVisible ? 'Hide controls (H)' : 'Show controls (H)'}
+              title={areControlsVisible ? 'Hide controls (H)' : 'Show controls (H)'}
+              className="w-10 h-10 sm:min-w-[44px] sm:min-h-[44px] rounded-xl bg-black/55 hover:bg-black/75 backdrop-blur-md text-white flex items-center justify-center border border-white/15 transition-colors shrink-0 active:scale-95"
+            >
+              {areControlsVisible ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4 text-sky-400" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={enterFullscreenLandscape}
@@ -840,45 +939,45 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       {/* Apple Studio Sub-Deck Metadata & Quick Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400 min-w-0">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-3.5 sm:px-4 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 border border-black/5 dark:border-white/10 w-full max-w-full min-w-0">
+        <div className="flex items-center gap-x-2 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400 overflow-x-auto no-scrollbar w-full sm:w-auto py-0.5">
           <span className="font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
             {channel.name}
           </span>
           <span aria-hidden="true">·</span>
-          <span className="whitespace-nowrap flex items-center gap-1.5">
+          <span className="whitespace-nowrap flex items-center gap-1.5 shrink-0">
             <CountryFlag code={channel.countryCode} size="xs" />
             <span>{channel.countryName}</span>
           </span>
           <span aria-hidden="true">·</span>
-          <span className="whitespace-nowrap">
+          <span className="whitespace-nowrap shrink-0">
             {channel.categories.join(' / ')}
           </span>
           <span aria-hidden="true">·</span>
-          <span className="font-mono tabular-nums whitespace-nowrap">
+          <span className="font-mono tabular-nums whitespace-nowrap shrink-0">
             {channel.isHttps ? 'HTTPS HLS' : 'HTTP Stream'}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="w-full sm:w-auto min-w-0 max-w-full flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/5 py-0.5">
           <button
             type="button"
             onClick={enterFullscreenLandscape}
             aria-label="One-tap Fullscreen & Landscape mode"
-            className="sm:hidden min-h-[38px] px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+            className="sm:hidden min-h-[38px] px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-95"
           >
             <Smartphone className="w-3.5 h-3.5 rotate-90 text-[#0071E3]" />
-            <span>Landscape Fullscreen</span>
+            <span>Landscape</span>
           </button>
 
           {/* AudioContext Volume Compressor / Loudness Normalizer */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowNormalizerMenu((prev) => !prev)}
               aria-expanded={showNormalizerMenu}
               aria-label="Audio Loudness Normalizer & Dynamics Compressor"
-              className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-95 ${
                 normalizerMode !== 'off'
                   ? 'bg-[#0071E3]/10 hover:bg-[#0071E3]/20 text-[#0071E3] dark:text-sky-400 border border-[#0071E3]/20'
                   : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
@@ -892,7 +991,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <div
                 role="dialog"
                 aria-label="Audio Loudness Normalizer Settings"
-                className="absolute left-0 bottom-12 w-72 sm:w-80 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/10 dark:border-white/15 p-3 shadow-2xl z-30"
+                className="absolute right-0 sm:left-0 bottom-12 w-[calc(100vw-36px)] max-w-xs sm:w-80 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/10 dark:border-white/15 p-3 shadow-2xl z-40"
               >
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-black/5 dark:border-white/10">
                   <div>
@@ -1030,6 +1129,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <span>Shortcuts</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={toggleControlsVisibility}
+            aria-label={areControlsVisible ? 'Hide video controls' : 'Show video controls'}
+            className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-95 ${
+              !areControlsVisible
+                ? 'bg-[#0071E3] text-white'
+                : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+            }`}
+          >
+            {areControlsVisible ? (
+              <>
+                <EyeOff className="w-3.5 h-3.5" />
+                <span>Hide Controls</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5 text-sky-400" />
+                <span>Show Controls</span>
+              </>
+            )}
+          </button>
 
           <button
             type="button"

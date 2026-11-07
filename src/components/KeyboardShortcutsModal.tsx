@@ -14,6 +14,7 @@ const SHORTCUT_ITEMS = [
   { keys: ['↓', 'N'], action: 'Switch to Next Live Channel' },
   { keys: ['↑', 'P'], action: 'Switch to Previous Live Channel' },
   { keys: ['I'], action: 'Toggle Floating Picture-in-Picture Mini-Player' },
+  { keys: ['H'], action: 'Hide or Show Video Controls (Clean Screen)' },
   { keys: ['T'], action: 'Toggle Cinema Mode' },
   { keys: ['R'], action: 'Open Country & Language Preferences' },
   { keys: ['?'], action: 'Show or Hide Keyboard Shortcuts' },

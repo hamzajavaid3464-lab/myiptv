@@ -13,6 +13,10 @@ An Apple-inspired live television streaming player and directory powered by the 
   - Automatically filters the global broadcast guide to your selected countries and broadcast languages.
   - Dynamic Regional Presets (English-speaking, European, South Asian, Middle Eastern, Latin American, Worldwide).
   - Quick-edit filter chips to add, remove, or clear regional filters instantly.
+- **Clean Screen & Immersive Full Video**:
+  - Toggle all UI controls, overlays, and scrims on/off with one click or press of `H`.
+  - Automatic auto-hide after 3.5 seconds of inactivity during playback.
+  - Non-intrusive floating "Show Controls" restore button, plus click-to-restore anywhere on the video.
 - **HLS Live Playback**:
   - Adaptive bitrate streaming via `hls.js`.
   - Quality selector (4K, 1080p, 720p, SD).
@@ -74,6 +78,7 @@ npm run preview
 | `↓` / `N` | Switch to Next Live Channel |
 | `↑` / `P` | Switch to Previous Live Channel |
 | `I` | Toggle Floating Picture-in-Picture Mini-Player |
+| `H` | Hide or Show Video Controls (Clean Screen) |
 | `T` | Toggle Cinema Mode |
 | `R` | Open Country & Language Preferences |
 | `?` | Show Keyboard Shortcuts Modal |

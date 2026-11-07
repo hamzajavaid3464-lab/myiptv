@@ -196,26 +196,26 @@ export const MultiViewGrid: React.FC<MultiViewGridProps> = ({
   onResetDefaultQuad,
 }) => {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="flex flex-col gap-3 sm:gap-4 w-full max-w-full min-w-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Apple TV+ Quad Multi-View Studio
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Quad Multi-View Studio
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Monitor up to four simultaneous live broadcasts. Click any screen to switch active audio focus.
+            Monitor four simultaneous live broadcasts. Tap any screen to switch active audio focus.
           </p>
         </div>
         <button
           type="button"
           onClick={onResetDefaultQuad}
-          className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-zinc-200/80 hover:bg-zinc-300/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors whitespace-nowrap shrink-0"
+          className="min-h-[36px] sm:min-h-[38px] px-3.5 py-1.5 rounded-xl bg-zinc-200/80 hover:bg-zinc-300/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors whitespace-nowrap shrink-0 active:scale-95"
         >
-          Load World News Quad Preset
+          Load Quad Preset
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 w-full min-w-0">
         {slots.map((slotChannel, index) => (
           <MultiViewSlot
             key={index}

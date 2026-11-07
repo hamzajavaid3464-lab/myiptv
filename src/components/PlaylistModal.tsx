@@ -69,11 +69,11 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="playlist-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md"
     >
-      <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+      <div className="w-full max-w-2xl rounded-t-3xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] pb-safe sm:pb-0">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-4">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-3">
           <div>
             <h2
               id="playlist-modal-title"
@@ -104,7 +104,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         </div>
 
         {/* Segmented Control */}
-        <div className="px-6 pt-4">
+        <div className="px-4 sm:px-6 pt-3 sm:pt-4">
           <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80">
             <button
               type="button"
@@ -138,7 +138,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-3 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-3 flex-1">
           {activeTab === 'official' ? (
             <div className="space-y-2.5">
               {OFFICIAL_IPTV_SOURCES.map((source: PlaylistSource) => {
