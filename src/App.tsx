@@ -719,17 +719,22 @@ export default function App() {
 
       {/* Mandatory 3-Zone Top Bar Contract */}
       <header className="sticky top-0 z-30 h-14 px-4 sm:px-8 bg-white/80 dark:bg-[#09090B]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-8">
-        {/* Zone 1: Single text element brand wordmark */}
-        <a
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            setActiveSection('live');
-          }}
-          className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap shrink-0"
-        >
-          CupertinoTV
-        </a>
+        {/* Zone 1: Brand wordmark & designer credit */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <a
+            href="#top"
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('live');
+            }}
+            className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-white whitespace-nowrap"
+          >
+            CupertinoTV
+          </a>
+          <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-black/5 dark:border-white/5">
+            Designed by Hamza Javaid
+          </span>
+        </div>
 
         {/* Zone 2: 4 concise single-line text navigation links */}
         <nav
@@ -1637,17 +1642,28 @@ export default function App() {
       {/* Quiet Editorial Footer */}
       <footer className="mt-auto border-t border-black/5 dark:border-white/10 py-6 px-4 sm:px-8 text-xs text-zinc-500 dark:text-zinc-400">
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>
-            CupertinoTV Live Streaming Studio · Powered by{' '}
-            <a
-              href="https://github.com/iptv-org/iptv"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-zinc-800 dark:text-zinc-200 hover:underline font-medium"
-            >
-              iptv-org/iptv
-            </a>{' '}
-            public M3U streams
+          <p className="flex flex-wrap items-center gap-1.5 text-center sm:text-left">
+            <span>CupertinoTV Live Streaming Studio</span>
+            <span aria-hidden="true" className="text-zinc-400">·</span>
+            <span>
+              Designed by{' '}
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                Hamza Javaid
+              </span>
+            </span>
+            <span aria-hidden="true" className="text-zinc-400">·</span>
+            <span>
+              Powered by{' '}
+              <a
+                href="https://github.com/iptv-org/iptv"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-800 dark:text-zinc-200 hover:underline font-medium"
+              >
+                iptv-org/iptv
+              </a>{' '}
+              public M3U streams
+            </span>
           </p>
           <div className="flex items-center gap-4">
             <button

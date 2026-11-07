@@ -1,5 +1,7 @@
 # CupertinoTV — Live Global IPTV Player
 
+> **Designed by Hamza Javaid**
+
 An Apple-inspired live television streaming player and directory powered by the open-source [iptv-org](https://github.com/iptv-org/iptv) global broadcast directory. Features HLS video playback, Quad Multi-View (4-channel simultaneous streaming), Web Audio API loudness normalization, country and language multi-selection filtering, and offline PWA installability.
 
 ---
@@ -78,14 +80,15 @@ npm run preview
 
 ---
 
-## Attribution & Data Sources
+## Credits & Attribution
 
-- Channel streams and M3U playlists provided by the community-driven [iptv-org](https://github.com/iptv-org/iptv) project under the Unlicense.
-- Icons by [Lucide](https://lucide.dev/).
-- Fonts: [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
+- **Design & Architecture**: Designed and developed by **Hamza Javaid**.
+- **Broadcast Directory**: Community-maintained global stream feeds by [iptv-org/iptv](https://github.com/iptv-org/iptv).
+- **Icons**: [Lucide Icons](https://lucide.dev/).
+- **Typography**: [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
 
 ---
 
 ## License
 
-MIT License. Open source and free for personal and community use.
+MIT License. Copyright (c) 2026 Hamza Javaid. Open source and free for personal and community use.

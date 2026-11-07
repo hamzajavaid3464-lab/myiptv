@@ -83,10 +83,15 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
           ))}
         </div>
 
+        <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
+          <span>CupertinoTV Live Studio</span>
+          <span>Designed by <strong className="text-zinc-700 dark:text-zinc-300 font-medium">Hamza Javaid</strong></span>
+        </div>
+
         <button
           type="button"
           onClick={onClose}
-          className="mt-5 w-full min-h-[40px] rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold transition-opacity hover:opacity-90"
+          className="mt-3.5 w-full min-h-[40px] rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold transition-opacity hover:opacity-90"
         >
           Got It
         </button>
